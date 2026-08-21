@@ -1,3 +1,3 @@
-# df-test-staging
+# df-test-protected
 
-Staging repo: receives unsigned Dataform pushes on `dataform/*`, signs + forwards to df-test-protected.
+Protected stand-in: required_signatures on ~ALL (ruleset 21128367), mirrors YAtechnologies/ml-data-dataform.
