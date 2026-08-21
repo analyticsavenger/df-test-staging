@@ -35,4 +35,4 @@ jobs:
           fi
           git -c user.name=sync-bot -c user.email=noreply@github.com \
             commit -qm "sync: mirror protected main + staging workflows"
-          git push origin main --force
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
