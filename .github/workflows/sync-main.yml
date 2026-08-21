@@ -18,8 +18,20 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Mirror protected main
+
+      - name: Mirror protected main, preserving staging workflows
         run: |
+          set -euo pipefail
           git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
           git fetch protected main
-          git push origin FETCH_HEAD:main --force
+          git fetch origin infra
+          git rm -rq . 2>/dev/null || true
+          git checkout refs/remotes/protected/main -- .
+          git checkout refs/remotes/origin/infra -- .github
+          if git diff --cached --quiet; then
+            echo "main already up to date"
+            exit 0
+          fi
+          git -c user.name=sync-bot -c user.email=noreply@github.com \
+            commit -qm "sync: mirror protected main + staging workflows"
+          git push origin main --force
