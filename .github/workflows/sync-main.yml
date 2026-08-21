@@ -22,6 +22,7 @@ jobs:
       - name: Mirror protected main, preserving staging workflows
         run: |
           set -euo pipefail
+          git config --unset-all http.https://github.com/.extraheader || true
           git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
           git fetch protected main
           git fetch origin infra
