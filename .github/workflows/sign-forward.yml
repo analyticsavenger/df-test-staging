@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           git config --unset-all http.https://github.com/.extraheader || true
-          git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
+          git remote add protected 2>/dev/null || git remote set-url protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
           git fetch protected main
           BASE="$(git merge-base origin/main "$GITHUB_REF_NAME")"
           git rebase --onto refs/remotes/protected/main \
@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           git config --unset-all http.https://github.com/.extraheader || true
-          git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
+          git remote add protected 2>/dev/null || git remote set-url protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
           git push protected "$GITHUB_REF_NAME" --force
 
       - name: Open or update PR
