@@ -1,0 +1,53 @@
+name: sign-and-forward
+
+on:
+  push:
+    branches: ['dataform/**']
+
+permissions: {}
+
+concurrency:
+  group: sign-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  sign-forward:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Import bot GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_committer_name: analyticsavenger
+          git_committer_email: 171575860+analyticsavenger@users.noreply.github.com
+
+      - name: Re-create every new commit with a signature
+        run: |
+          BASE="$(git merge-base origin/main "$GITHUB_REF_NAME")"
+          git rebase --committer-date-is-author-date \
+                    --exec 'git commit --amend --no-edit -S' "$BASE"
+          for c in $(git rev-list "$BASE..HEAD"); do
+            git verify-commit "$c" || { echo "::error::unsigned commit $c"; exit 1; }
+          done
+
+      - name: Push signed branch into the protected repo
+        run: |
+          git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
+          git push protected "$GITHUB_REF_NAME" --force-with-lease
+
+      - name: Open or update PR
+        env:
+          GH_TOKEN: ${{ secrets.PROTECTED_REPO_TOKEN }}
+        run: |
+          gh pr create --repo analyticsavenger/df-test-protected \
+            --base main --head "$GITHUB_REF_NAME" \
+            --title "Dataform: ${GITHUB_REF_NAME#dataform/}" \
+            --body "Auto-forwarded, signature-corrected from the staging repo." \
+          || echo "PR exists — force-push already updated it"

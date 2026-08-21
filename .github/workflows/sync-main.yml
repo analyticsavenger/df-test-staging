@@ -1,0 +1,25 @@
+name: sync-main-from-protected
+
+on:
+  schedule: [{ cron: '*/15 * * * *' }]
+  workflow_dispatch:
+
+permissions: { contents: write }
+
+concurrency:
+  group: sync-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Mirror protected main
+        run: |
+          git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
+          git fetch protected main
+          git push origin FETCH_HEAD:main --force
