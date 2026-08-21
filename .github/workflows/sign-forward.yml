@@ -25,22 +25,30 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-          git_committer_name: analyticsavenger
+          git_committer_name: Neil Alex
           git_committer_email: neil.alex@yassir.com
 
-      - name: Re-create every new commit with a signature
+      - name: Re-create new commits, signed, on top of protected main
         run: |
+          set -euo pipefail
+          git config --unset-all http.https://github.com/.extraheader || true
+          git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
+          git fetch protected main
           BASE="$(git merge-base origin/main "$GITHUB_REF_NAME")"
-          git rebase --committer-date-is-author-date \
+          git rebase --onto refs/remotes/protected/main \
+                    --committer-date-is-author-date \
                     --exec 'git commit --amend --no-edit -S' "$BASE"
-          for c in $(git rev-list "$BASE..HEAD"); do
+          NEW_BASE="$(git rev-parse refs/remotes/protected/main)"
+          for c in $(git rev-list "$NEW_BASE..HEAD"); do
             git verify-commit "$c" || { echo "::error::unsigned commit $c"; exit 1; }
           done
 
       - name: Push signed branch into the protected repo
         run: |
+          set -euo pipefail
+          git config --unset-all http.https://github.com/.extraheader || true
           git remote add protected "https://x-access-token:${{ secrets.PROTECTED_REPO_TOKEN }}@github.com/analyticsavenger/df-test-protected.git"
-          git push protected "$GITHUB_REF_NAME" --force-with-lease
+          git push protected "$GITHUB_REF_NAME" --force
 
       - name: Open or update PR
         env:
